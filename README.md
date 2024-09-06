@@ -17,7 +17,7 @@ docker run \
    hashicorp/vault-enterprise server```
 3. Init and unseal. Add root token to `VAULT_ADDR` env var
 
-### Demo workflowgit add
+### Demo workflow
 
 1. Enable Secret Sync
 2. Configure GCP destination in Vault
