@@ -5,3 +5,6 @@ docker run \
   --volume ./config/:/vault/config \
   --volume ./license/:/vault/license \
   hashicorp/vault-enterprise server
+
+
+  # Vault config

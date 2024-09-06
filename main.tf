@@ -1,1 +1,0 @@
-resource "cloud_run" "" {}

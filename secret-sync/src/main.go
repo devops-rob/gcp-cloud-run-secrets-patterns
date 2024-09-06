@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
@@ -21,36 +21,56 @@ var (
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>File Content</title>
+            <title>Vault Secret Sync Demo</title>
+            <link rel="stylesheet" type="text/css" href="/static/styles.css">
+            <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
             <script>
+                let previousContent = "";
+
                 async function fetchContent() {
                     const response = await fetch('/content');
                     const text = await response.text();
-                    document.getElementById('content').innerText = text;
+                    if (text !== previousContent) {
+                        previousContent = text;
+                        document.getElementById('content').innerText = text;
+                        triggerConfetti();
+                    }
                 }
+
+                function triggerConfetti() {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+
                 setInterval(fetchContent, 1000); // Refresh content every 1 second
             </script>
         </head>
         <body onload="fetchContent()">
-            <h1>File Content</h1>
-            <pre id="content"></pre>
+            <div class="container">
+                <h1>Vault Secret Sync Demo</h1>
+                <img src="/static/splash1.png" alt="Vault Secret Sync Demo">
+                <div id="content" class="content"></div>
+            </div>
         </body>
         </html>
     `))
 )
 
 func main() {
-	// Initialize file content
+
 	updateFileContent()
 
-	// Watch for file changes
-	go watchFileChanges()
+	go pollFileChanges()
 
-	// Serve HTTP
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+
 	http.HandleFunc("/", serveTemplate)
 	http.HandleFunc("/content", serveContent)
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Starting server on :18200")
+	log.Fatal(http.ListenAndServe(":18200", nil))
 }
 
 func serveTemplate(w http.ResponseWriter, r *http.Request) {
@@ -75,37 +95,10 @@ func updateFileContent() {
 	fileContent = string(data)
 }
 
-func watchFileChanges() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
+func pollFileChanges() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		updateFileContent()
 	}
-	defer watcher.Close()
-
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("File modified:", event.Name)
-					updateFileContent()
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("Error:", err)
-			}
-		}
-	}()
-
-	err = watcher.Add(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	<-done
 }
