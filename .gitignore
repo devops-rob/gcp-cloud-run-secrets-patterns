@@ -1,0 +1,6 @@
+/sidecar/terraform/.terraform.lock.hcl
+/sidecar/terraform/terraform.tfstate
+/sidecar/terraform/terraform.tfstate.backup
+/vault-agent-testing/
+/sidecar/terraform/.auto.tfvars
+/sidecar/terraform/.terraform/
